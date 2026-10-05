@@ -13,7 +13,7 @@
   --bg:#f6f4f0; --surface:#fcfcfb; --surface-2:#f0efec; --line:#e2dfd8;
   --ink:#1d1c1a; --ink-2:#55524c; --ink-3:#8a867e;
   --accent:#1d1c1a; --accent-ink:#fcfcfb;
-  --pos:#2a78d6; --neg:#e34948;
+  --pos:#1f8f45; --neg:#e34948;
   --good:#0f7a3a; --good-bg:#e6f3ea; --warn:#8a5a00; --warn-bg:#fbf0d9; --bad:#a32222; --bad-bg:#fbe6e4;
   --radius:14px;
 }
@@ -22,7 +22,7 @@
     --bg:#121211; --surface:#1a1a19; --surface-2:#242422; --line:#33332f;
     --ink:#f1efea; --ink-2:#bdb9b0; --ink-3:#8b877f;
     --accent:#f1efea; --accent-ink:#1a1a19;
-    --pos:#3987e5; --neg:#e66767;
+    --pos:#4cc274; --neg:#e66767;
     --good:#6fd08f; --good-bg:#16291d; --warn:#f2c46b; --warn-bg:#2d2414; --bad:#f08a86; --bad-bg:#321b1a;
   }
 }
@@ -30,7 +30,7 @@
   --bg:#121211; --surface:#1a1a19; --surface-2:#242422; --line:#33332f;
   --ink:#f1efea; --ink-2:#bdb9b0; --ink-3:#8b877f;
   --accent:#f1efea; --accent-ink:#1a1a19;
-  --pos:#3987e5; --neg:#e66767;
+  --pos:#4cc274; --neg:#e66767;
   --good:#6fd08f; --good-bg:#16291d; --warn:#f2c46b; --warn-bg:#2d2414; --bad:#f08a86; --bad-bg:#321b1a;
 }
 *{box-sizing:border-box}
@@ -105,6 +105,21 @@ tr.sel td{font-weight:600}
 .tbl{overflow-x:auto}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
 .dot.good{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+.mt td{vertical-align:top}
+.mt th,.mt td{padding:8px 5px}
+.mt td:first-child{white-space:normal;min-width:120px}
+.mt td small{display:block;color:var(--ink-3);font-size:12px;font-weight:400}
+.mt tr.deb td{background:var(--bad-bg)}
+.mt tr.ok td{background:var(--good-bg)}
+.mt tr.virada td{box-shadow:inset 0 2px 0 var(--good)}
+.mt .st{font-weight:600;font-size:12.5px}
+.mt tr.deb .st, .mt tr.deb .ac{color:var(--bad)}
+.mt tr.ok .st, .mt tr.ok .ac{color:var(--good)}
+.mt .ac{font-weight:600}
+.mt .stm{display:none}
+.tbl.cq{container-type:inline-size}
+@container (max-width:540px){ .mt th,.mt td{padding:8px 4px} .mt .opt{display:none} .mt .stm{display:block;font-weight:600;font-size:12px;margin-top:2px} .mt tr.deb .stm{color:var(--bad)} .mt tr.ok .stm{color:var(--good)} }
+@media (max-width:560px){ .mt td:first-child{white-space:normal} .mt th,.mt td{padding:8px 4px} .mt .opt{display:none} .mt .stm{display:block;font-weight:600;font-size:12px;margin-top:2px} .mt tr.deb .stm{color:var(--bad)} .mt tr.ok .stm{color:var(--good)} }
 .chart{position:relative;margin-top:8px}
 .chart svg{display:block;width:100%;height:auto}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--surface);font-size:12.5px;padding:6px 9px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-110%);opacity:0;transition:opacity .1s}
@@ -288,7 +303,13 @@ tr.sel td{font-weight:600}
         <h2>Caixa acumulado mês a mês</h2>
         <p class="lead">Quanto dinheiro o lançamento já devolveu (ou ainda deve) em cada mês.</p>
         <div class="chart" id="chart"><div class="tip" id="tip"></div></div>
-        <div class="legend"><span><i style="background:var(--pos)"></i>Positivo</span><span><i style="background:var(--neg)"></i>Negativo</span></div>
+        <div class="legend"><span><i style="background:var(--pos)"></i>Já se pagou</span><span><i style="background:var(--neg)"></i>Em débito</span></div>
+      </section>
+
+      <section class="card">
+        <h2>O que acontece em cada mês</h2>
+        <p class="lead" id="mesLead">Quanto entra, quanto sai e se o lançamento ainda está devendo ou já se pagou.</p>
+        <div class="tbl cq"><table id="mesTab" class="mt"></table></div>
       </section>
 
       <section class="card">
@@ -404,7 +425,7 @@ function compute(s, n){
   const perda = lucroAv!==null ? n*m.canib*m.freq*lucroAv : 0;
   const incremental = lucro - perda;
   const perDelivery = cl.full.delivered>0 ? sum(cl.full.net)/cl.full.delivered : null;
-  return {m,n,H,flows,cum,receita,parts,lucro,margem:receita>0?lucro/receita:NaN,
+  return {m,n,H,cl,flows,cum,receita,parts,lucro,margem:receita>0?lucro/receita:NaN,
     payback,worst,perClient,pMin,pMeta,be,lucroAv,perda,incremental,perDelivery,fixedTotal,
     roi: fixedTotal>0 ? lucro/fixedTotal : null};
 }
@@ -485,6 +506,7 @@ function render(){
   $("#notes").innerHTML = notes.map(t=>`<li>${t}</li>`).join("");
 
   drawChart(R);
+  drawMonthly(R);
   drawBreakdown(R);
   drawScenarios();
   try{ history.replaceState(null,"","#"+encodeState()); }catch(e){}
@@ -526,6 +548,35 @@ function drawChart(R){
     });
     el.addEventListener("mouseleave",()=>tip.style.opacity=0);
   });
+}
+function drawMonthly(R){
+  const m=R.m, M=m.rec?m.M:1, start=m.inv>0?0:1;
+  const dels={}; for(let j=0;j<m.E;j++) dels[1+j*m.I]=j+1;
+  let h=`<thead><tr><th>Mês</th><th class="opt">Entra</th><th class="opt">Sai</th><th>Saldo do mês</th><th>Acumulado</th><th class="opt">Situação</th></tr></thead><tbody>`;
+  const deb=[];
+  for(let i=start;i<=R.H;i++){
+    const entra = i===0 ? 0 : R.n*R.cl.r[i], saldo=R.flows[i], sai=entra-saldo, ac=R.cum[i];
+    const what=[];
+    if(i===0) what.push("Gastos do lançamento");
+    if(i>0 && m.rec && i<=M) what.push(`Mensalidade ${i} de ${M}`);
+    if(i===1 && !m.rec) what.push("Pagamento");
+    if(dels[i]) what.push(m.E>1?`Entrega ${dels[i]}`:"Entrega");
+    if(m.rec && m.c>0 && i===Math.min(m.k,M) && m.k<M) what.push("Cancelamentos");
+    let cls, st;
+    if(ac < -0.005){ cls="deb"; st="Em débito"; deb.push(i); }
+    else if(R.payback!==null && i===R.payback && i>0){ cls="ok virada"; st="Se pagou aqui"; }
+    else if(R.payback!==null && i>R.payback){ cls="ok"; st="Já se pagou"; }
+    else { cls="ok"; st="No positivo"; }
+    h+=`<tr class="${cls}"><td>${i===0?"Lançamento":"Mês "+i}<small>${what.join(" · ")}</small><span class="stm">${st}</span></td><td class="num opt">${brl(entra)}</td><td class="num opt">${brl(-sai)}</td><td class="num">${brl(saldo)}</td><td class="num ac">${brl(ac)}</td><td class="st opt">${st}</td></tr>`;
+  }
+  $("#mesTab").innerHTML=h+"</tbody>";
+  const lbl=i=>i===0?"lançamento":"mês "+i;
+  let lead;
+  if(!m.p) lead="Preencha o preço para ver o mês a mês.";
+  else if(!deb.length) lead=`Com ${R.n} vendas, o caixa não fica negativo em nenhum mês.`;
+  else if(R.payback===null) lead=`Com ${R.n} vendas, o lançamento termina em débito: ${brl(R.cum[R.H])} no fim do mês ${R.H}.`;
+  else lead=`Com ${R.n} vendas, fica em débito em ${deb.length} ${deb.length>1?"meses":"mês"} (${deb.map(lbl).join(", ")}) e se paga de vez no mês ${R.payback}.`;
+  $("#mesLead").textContent=lead;
 }
 function niceTicks(min,max,c){ const span=max-min, raw=span/c, mag=Math.pow(10,Math.floor(Math.log10(raw))); const st=[1,2,2.5,5,10].map(s=>s*mag).find(s=>span/s<=c)||raw; const out=[]; for(let v=Math.ceil(min/st)*st; v<=max+1e-9; v+=st) out.push(Math.round(v*100)/100); return out; }
 function short(v){ const a=Math.abs(v), s=v<0?"−":""; return a>=1e6? s+(a/1e6).toLocaleString("pt-BR",{maximumFractionDigits:1})+" mi" : a>=1e3? s+(a/1e3).toLocaleString("pt-BR",{maximumFractionDigits:1})+" mil" : s+Math.round(a); }
