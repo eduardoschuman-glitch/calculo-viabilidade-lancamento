@@ -71,8 +71,6 @@ select.btn{padding-right:28px}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08);font-weight:500}
 .hidden{display:none!important}
 
-aside.res{position:sticky;top:16px}
-@media (max-width:960px){aside.res{position:static}}
 .chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;cursor:pointer;font-weight:500}
 .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
@@ -132,6 +130,32 @@ tr.sel td{font-weight:600}
 .bar-row .track b.profit{background:var(--pos)}
 .bar-row .track b.loss{background:var(--neg)}
 .foot{margin-top:28px;color:var(--ink-3);font-size:13px}
+.srv-row{display:grid;grid-template-columns:minmax(0,1fr) 110px 78px 64px 32px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.srv-row .nm{font-size:14px;min-width:0}
+.srv-row .nm input{width:100%}
+.srv-row .inp input{padding:7px 8px}
+.srv-row .rm{border:0;background:transparent;color:var(--ink-3);font-size:20px;line-height:1;cursor:pointer;padding:4px}
+.srv-row .rm:hover{color:var(--bad)}
+.srv-head{display:grid;grid-template-columns:minmax(0,1fr) 110px 78px 64px 32px;gap:8px;font-size:12px;color:var(--ink-3);padding-bottom:4px;border-bottom:1px solid var(--line)}
+@media (max-width:560px){.srv-row,.srv-head{grid-template-columns:minmax(0,1fr) 64px 32px}.srv-row .nm{grid-column:1/-1}.srv-head .h-nm,.srv-head .h-com{display:none}.srv-row .c-com{display:none}}
+.srv-total{display:flex;justify-content:space-between;padding:10px 0 4px;font-weight:600}
+.srv-total:empty{display:none}
+.srv-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.picker{margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--surface-2)}
+.pick-list{max-height:300px;overflow-y:auto;margin-top:8px;display:flex;flex-direction:column}
+.pick-list button{display:flex;justify-content:space-between;gap:12px;text-align:left;border:0;background:transparent;padding:9px 8px;border-radius:8px;cursor:pointer;font-size:14px}
+.pick-list button:hover,.pick-list button:focus{background:var(--surface);outline:none}
+.pick-list button span:last-child{white-space:nowrap;color:var(--ink-2)}
+.pick-empty{padding:10px 8px;color:var(--ink-3);font-size:14px}
+.base-info{font-size:12.5px;color:var(--ink-3);margin:10px 0 0}
+.base-info button{border:0;background:none;padding:0;color:var(--ink-2);text-decoration:underline;cursor:pointer;font-size:12.5px}
+.importer{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.importer small{color:var(--ink-3);font-size:12.5px}
+.importer textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px;font:13px/1.4 ui-monospace,Consolas,monospace;color:var(--ink)}
+.cmp{width:100%}
+.cmp td:first-child{white-space:normal}
+.cmp tr.tot td{font-weight:600}
+.cmp .pos{color:var(--good)} .cmp .neg{color:var(--bad)}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
@@ -264,27 +288,29 @@ tr.sel td{font-weight:600}
       </section>
 
       <section class="card">
-        <h2><span class="step">07</span>Comparação com a venda normal</h2>
-        <p class="lead">Opcional. Mostra se o lançamento rende mais do que vender do jeito de sempre.</p>
-        <div class="fields">
-          <div class="f"><label for="avulso">Preço da venda avulsa</label>
-            <div class="inp"><span>R$</span><input id="avulso" data-k="avulso" inputmode="decimal"></div>
-            <small>Preço normal de uma entrega fora do lançamento.</small></div>
-          <div class="f"><label for="canib">Compradoras que já comprariam avulso</label>
-            <div class="inp"><input id="canib" data-k="canib" inputmode="decimal"><span>%</span></div>
-            <small>Clientes que pagariam o preço cheio e migram para a oferta.</small></div>
-          <div class="f"><label for="freq">Compras avulsas no mesmo período</label>
-            <div class="inp"><input id="freq" data-k="freq" inputmode="decimal"><span>vezes</span></div>
-            <small>Quantas vezes essa cliente compraria avulso no tempo da oferta.</small></div>
+        <h2><span class="step">07</span>Comparação com a venda avulsa</h2>
+        <p class="lead">Escolha os serviços que a cliente compraria separado para ter o mesmo que o pacote. O resultado mostra se vale mais vender em pacote ou avulso.</p>
+        <div id="servList"></div>
+        <div class="srv-total" id="servTotal"></div>
+        <div class="srv-actions">
+          <button type="button" class="btn primary" id="bAddServ">+ Adicionar serviço</button>
+          <button type="button" class="btn" id="bManual">+ Serviço fora da lista</button>
         </div>
-      </section>
-
-      <section class="card">
-        <h2><span class="step">08</span>Sua meta</h2>
-        <div class="fields">
-          <div class="f"><label for="meta">Margem de lucro desejada</label>
-            <div class="inp"><input id="meta" data-k="meta" inputmode="decimal"><span>%</span></div>
-            <small>Abaixo disso a conta fecha, mas com margem apertada.</small></div>
+        <div class="picker hidden" id="picker">
+          <div class="inp"><input id="pickQ" type="search" placeholder="Buscar serviço (ex.: botox, nefertite)" aria-label="Buscar serviço"></div>
+          <div class="pick-list" id="pickList" role="listbox" aria-label="Serviços"></div>
+        </div>
+        <p class="base-info" id="baseInfo"></p>
+        <div class="importer hidden" id="importer">
+          <label for="importTxt"><b>Cole aqui a lista de serviços do sistema</b></label>
+          <small>Uma linha por serviço, com nome, preço e comissão (do jeito que sai do CRM). A lista fica salva só neste navegador.</small>
+          <textarea id="importTxt" rows="7" placeholder="Botox - Efeito Nefertite&#9;R$ 1,400.00&#9;70.00 %&#9;60 min"></textarea>
+          <div class="srv-actions"><button type="button" class="btn primary" id="bImportOk">Carregar lista</button><button type="button" class="btn" id="bImportCancel">Cancelar</button></div>
+        </div>
+        <div class="fields" style="margin-top:16px">
+          <div class="f"><label for="canib">Clientes que já comprariam avulso</label>
+            <div class="inp"><input id="canib" data-k="canib" inputmode="decimal"><span>%</span></div>
+            <small>Das compradoras do pacote, quantas pagariam o preço cheio se o pacote não existisse.</small></div>
         </div>
       </section>
     </form>
@@ -322,6 +348,12 @@ tr.sel td{font-weight:600}
         <h2>Cenários lado a lado</h2>
         <div class="tbl"><table id="scen"></table></div>
       </section>
+
+      <section class="card" id="cmpCard">
+        <h2>Pacote x venda avulsa</h2>
+        <p class="lead" id="cmpLead">Escolha os serviços no passo 07 para comparar.</p>
+        <div id="cmpBody"></div>
+      </section>
     </aside>
   </div>
 
@@ -330,6 +362,7 @@ tr.sel td{font-weight:600}
 <div class="toast" id="toast"></div>
 
 <script>
+const META = 0.20; // margem de referência para o veredito
 const DEFAULTS = {
   nome:"", modo:"unico", preco:"", meses:"12", vagas:"",
   entregas:"1", intervalo:"1",
@@ -337,8 +370,8 @@ const DEFAULTS = {
   comissao:"0", comissaoQuando:"entrega", taxa:"0", imposto:"0",
   cac:"0", anuncios:"0", materiais:"0", outrosLanc:"0", fixo:"0",
   cancel:"0", cancelMes:"3", multa:"0",
-  avulso:"", canib:"0", freq:"1",
-  meta:"20", vendas:20, chipList:[10,20,30,40,50]
+  servs:[], canib:"0",
+  vendas:20, chipList:[10,20,30,40,50]
 };
 let S = {...DEFAULTS};
 
@@ -359,8 +392,9 @@ function model(s){
     fee: numIn(s.taxa)/100, tax: numIn(s.imposto)/100,
     cac: numIn(s.cac), inv: numIn(s.anuncios)+numIn(s.materiais)+numIn(s.outrosLanc), fixo: numIn(s.fixo),
     c: numIn(s.cancel)/100, k: Math.max(1,Math.round(numIn(s.cancelMes))), multa: numIn(s.multa)/100,
-    av: numIn(s.avulso), canib: numIn(s.canib)/100, freq: numIn(s.freq),
-    meta: numIn(s.meta)/100, vagas: numIn(s.vagas)
+    av: (s.servs||[]).reduce((t,x)=>t+numIn(x.p)*numIn(x.q),0),
+    avCom: (s.servs||[]).reduce((t,x)=>t+numIn(x.p)*numIn(x.q)*numIn(x.c)/100,0),
+    canib: numIn(s.canib)/100, meta: META, vagas: numIn(s.vagas)
   };
 }
 
@@ -421,12 +455,17 @@ function compute(s, n){
   const pMeta = n>0 && den>0 ? Math.max(0,(fixedTotal - n*a)/den) : null;
   const be = perClient>0 ? Math.ceil(fixedTotal/perClient - 1e-9) : null;
   // venda avulsa
-  const lucroAv = m.av>0 ? m.av*(1-m.com-m.fee-m.tax) - (m.insEmp?m.ins:0) - m.out : null;
-  const perda = lucroAv!==null ? n*m.canib*m.freq*lucroAv : 0;
+  // pacote x avulso, por cliente que fica até o fim (mesmas entregas, mesmo custo de produção)
+  const f=cl.full, prod=sum(f.ins)+sum(f.out);
+  const pk={r:sum(f.r),com:sum(f.com),fee:sum(f.fee),tax:sum(f.tax),prod,cac:sum(f.cac)}; pk.l=pk.r-pk.com-pk.fee-pk.tax-pk.prod-pk.cac;
+  let av=null;
+  if (m.av>0){ av={r:m.av,com:m.avCom,fee:m.fee*m.av,tax:m.tax*m.av,prod,cac:0}; av.l=av.r-av.com-av.fee-av.tax-av.prod; }
+  const lucroAv = av ? av.l : null;
+  const perda = av ? n*m.canib*av.l : 0;
   const incremental = lucro - perda;
   const perDelivery = cl.full.delivered>0 ? sum(cl.full.net)/cl.full.delivered : null;
   return {m,n,H,cl,flows,cum,receita,parts,lucro,margem:receita>0?lucro/receita:NaN,
-    payback,worst,perClient,pMin,pMeta,be,lucroAv,perda,incremental,perDelivery,fixedTotal,
+    payback,worst,perClient,pMin,pMeta,be,lucroAv,perda,pk,av,incremental,perDelivery,fixedTotal,
     roi: fixedTotal>0 ? lucro/fixedTotal : null};
 }
 
@@ -440,9 +479,9 @@ function verdictOf(R){
   if (m.av>0 && m.canib>0 && R.incremental<0) return {cls:"warn",tag:"Fecha, mas cuidado",h:"Rende menos que a venda normal",
     p:`O lançamento dá ${brl(R.lucro)} de lucro, mas as clientes que já comprariam avulso deixariam ${brl(R.perda)}. No saldo, a empresa ganha ${brl(R.incremental)} a menos.`};
   if (R.margem < m.meta) return {cls:"warn",tag:"Fecha, mas apertado",h:`Margem de ${pct(R.margem)}`,
-    p:`Dá lucro, mas abaixo da meta de ${pct(m.meta)}.`+(R.pMeta!==null?` Para chegar na meta com ${R.n} vendas, o preço precisa ser ${precoTxt(m,R.pMeta)}.`:"")};
+    p:`Dá lucro, mas abaixo da margem de referência de ${pct(m.meta)}.`+(R.pMeta!==null?` Para chegar nos ${pct(m.meta)} com ${R.n} vendas, o preço precisa ser ${precoTxt(m,R.pMeta)}.`:"")};
   return {cls:"good",tag:"Vale a pena",h:"A conta fecha",
-    p:`Margem de ${pct(R.margem)}, acima da meta de ${pct(m.meta)}.`+(R.payback?` O lançamento se paga no mês ${R.payback}.`:"")};
+    p:`Margem de ${pct(R.margem)}, acima da referência de ${pct(m.meta)}.`+(R.payback?` O lançamento se paga no mês ${R.payback}.`:"")};
 }
 const precoTxt = (m,p) => m.rec ? `${brl(p,2)} por mês` : brl(p,2);
 
@@ -477,7 +516,7 @@ function render(){
   const pbS = R.payback===null ? `no prazo de ${R.H} meses` : R.payback===0 ? "o caixa nunca fica negativo" : `caixa positivo a partir daí`;
   const kp = [
     ["Lucro do lançamento", brl(R.lucro), `com ${R.n} vendas`, R.lucro<0],
-    ["Margem de lucro", pct(R.margem), `sobre ${brl(R.receita)} de receita`, R.margem<0],
+    ["Margem de lucro", pct(R.margem), `referência: ${pct(m.meta)}`, R.margem<0],
     ["Se paga em", pb, pbS, R.payback===null],
     ["Lucro por cliente", brl(R.perClient), m.E>0 && R.perDelivery!==null ? `${brl(R.perDelivery)} por entrega` : "", R.perClient<0],
     ["Precisa ter em caixa", brl(-R.worst), "pior momento antes de voltar", false],
@@ -489,8 +528,6 @@ function render(){
   const notes=[];
   if (R.pMin!==null && m.p>0) notes.push(`Preço mínimo para não ter prejuízo por cliente: <b>${precoTxt(m,R.pMin)}</b>.`);
   if (R.pMeta!==null && m.p>0) notes.push(`Preço para atingir ${pct(m.meta)} de margem com ${R.n} vendas: <b>${precoTxt(m,R.pMeta)}</b>.`);
-  if (R.lucroAv!==null && R.perDelivery!==null) notes.push(`Cada entrega no lançamento deixa <b>${brl(R.perDelivery)}</b>. A mesma entrega vendida avulsa deixa <b>${brl(R.lucroAv)}</b>.`);
-  if (m.av>0 && m.canib>0) notes.push(`Lucro que deixa de entrar com quem migraria da venda avulsa: <b>${brl(R.perda)}</b>. Lucro realmente novo: <b>${brl(R.incremental)}</b>.`);
   if (m.rec && m.E>0 && m.p>0) {
     const quit = sum(client({...m,k:1,multa:0},m.p,true).net);
     if (quit<0) notes.push(`Uma cliente que cancela logo depois da 1ª entrega, sem multa, deixa um prejuízo de <b>${brl(-quit)}</b>.`);
@@ -507,6 +544,8 @@ function render(){
 
   drawChart(R);
   drawMonthly(R);
+  drawCompare(R);
+  servTotals(m);
   drawBreakdown(R);
   drawScenarios();
   try{ history.replaceState(null,"","#"+encodeState()); }catch(e){}
@@ -601,10 +640,122 @@ function drawScenarios(){
   $("#scen").innerHTML=h+"</tbody>";
 }
 
+
+// ---------- pacote x venda avulsa ----------
+function drawCompare(R){
+  const m=R.m, body=$("#cmpBody"), lead=$("#cmpLead");
+  if(!R.av){ lead.textContent="Escolha no passo 07 os serviços que a cliente compraria separado para comparar."; body.innerHTML=""; return; }
+  if(!m.p){ lead.textContent="Preencha o preço do pacote no passo 01."; body.innerHTML=""; return; }
+  const pk=R.pk, av=R.av, diff=pk.l-av.l, desc=1-pk.r/av.r;
+  lead.textContent = `Uma cliente que fica até o fim, comparada com a mesma cliente comprando ${(S.servs||[]).length>1?"os serviços":"o serviço"} separado.`;
+  const row=(k,a,b,cls="")=>`<tr class="${cls}"><td>${k}</td><td class="num">${a}</td><td class="num">${b}</td></tr>`;
+  const mg=x=>x.r>0?pct(x.l/x.r):"–";
+  let t=`<thead><tr><th></th><th>Avulso</th><th>Pacote</th></tr></thead><tbody>`;
+  t+=row("A cliente paga",brl(av.r),brl(pk.r));
+  t+=row("Comissão do profissional",brl(-av.com),brl(-pk.com));
+  if(av.fee||pk.fee) t+=row("Taxa de pagamento",brl(-av.fee),brl(-pk.fee));
+  if(av.tax||pk.tax) t+=row("Imposto",brl(-av.tax),brl(-pk.tax));
+  if(pk.prod) t+=row("Custo de produção",brl(-av.prod),brl(-pk.prod));
+  if(pk.cac) t+=row("Bônus e aquisição",brl(0),brl(-pk.cac));
+  t+=row("Lucro da clínica",`<span class="${av.l<0?"neg":""}">${brl(av.l)}</span>`,`<span class="${pk.l<0?"neg":""}">${brl(pk.l)}</span>`,"tot");
+  t+=row("Margem",mg(av),mg(pk));
+  t+="</tbody>";
+  let V;
+  if(pk.l<=0) V={cls:"bad",tag:"Não vale vender em pacote",h:`O pacote dá prejuízo de ${brl(-pk.l)} por cliente`,p:`Vendido avulso, o mesmo atendimento deixaria ${brl(av.l)}.`};
+  else if(diff>=0) V={cls:"good",tag:"Pacote vale a pena",h:`O pacote dá ${brl(diff)} a mais por cliente`,p:`Mesmo com desconto de ${pct(desc)} para a cliente, a clínica ganha mais vendendo em pacote.`};
+  else {
+    const nNovas = Math.ceil(10*(-diff)/pk.l - 1e-9);
+    V={cls:"warn",tag:"Só vale com clientes novas",h:`O pacote dá ${brl(-diff)} a menos por cliente`,
+      p:`A cliente economiza ${pct(desc)} (${brl(av.r-pk.r)}). Cada cliente que já compraria avulso e vai para o pacote faz a clínica perder ${brl(-diff)}. Para compensar, a cada 10 clientes que já comprariam avulso, o pacote precisa trazer pelo menos ${nNovas} ${nNovas>1?"clientes novas":"cliente nova"}.`};
+  }
+  const notes=[];
+  notes.push(`Desconto que a cliente ganha no pacote: <b>${pct(desc)}</b> (${brl(av.r-pk.r)}).`);
+  if(pk.l>0 && av.l>pk.l) notes.push(`O lançamento continua valendo mais do que não fazer nada enquanto até <b>${pct(pk.l/av.l)}</b> das compradoras forem clientes que já comprariam avulso.`);
+  if(av.l<0) notes.push(`Atenção: até a venda avulsa dá prejuízo com esses custos. Confira o custo de produção e quem paga o insumo.`);
+  if(m.canib>0){
+    notes.push(`Com ${R.n} vendas e ${pct(m.canib)} de clientes que já comprariam avulso, o lucro que a clínica deixa de ter na venda avulsa é <b>${brl(R.perda)}</b>.`);
+    notes.push(`Lucro realmente novo do lançamento: <b class="${R.incremental<0?"neg":"pos"}">${brl(R.incremental)}</b>.`);
+  } else notes.push(`Preencha "Clientes que já comprariam avulso" no passo 07 para ver o lucro realmente novo do lançamento.`);
+  body.innerHTML=`<div class="verdict ${V.cls}" style="margin-top:0;margin-bottom:14px"><div class="tag">${V.tag}</div><h3>${V.h}</h3><p>${V.p}</p></div><div class="tbl"><table class="cmp">${t}</table></div><ul class="notes cmp">${notes.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+}
+
+// ---------- serviços para comparar ----------
+const BASE_KEY="viabilidade-base";
+function loadBase(){ try{ return JSON.parse(localStorage.getItem(BASE_KEY)||"[]"); }catch(e){ return []; } }
+let BASE = loadBase();
+const esc = t => String(t??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+const norm = t => String(t).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const moneyIn = t => { t=String(t).replace(/R\$|\s/g,""); if(/,\d{1,2}$/.test(t)) t=t.replace(/\./g,"").replace(",","."); else t=t.replace(/,/g,""); const n=parseFloat(t); return isFinite(n)?n:0; };
+function parseBase(txt){
+  const out=[];
+  txt.split(/\r?\n/).forEach(line=>{
+    if(!line.trim()) return;
+    let nm, pr, cm;
+    const parts=line.split("\t").map(x=>x.trim()).filter(Boolean);
+    if(parts.length>=3 && /R\$|\d/.test(parts[1])){ nm=parts[0]; pr=moneyIn(parts[1]); cm=parseFloat(parts[2].replace(",",".")); }
+    else { const mm=line.match(/^(.+?)\s+R\$\s*([\d.,]+)\s+([\d.,]+)\s*%/); if(!mm) return; nm=mm[1].trim(); pr=moneyIn(mm[2]); cm=parseFloat(mm[3].replace(",",".")); }
+    if(nm && pr>=1) out.push({n:nm,p:Math.round(pr*100)/100,c:isFinite(cm)?cm:0});
+  });
+  return out;
+}
+function baseInfo(){
+  const el=$("#baseInfo");
+  el.innerHTML = BASE.length ? `Lista com ${BASE.length} serviços salva neste navegador. <button type="button" id="bReimport">Trocar lista</button>` : `Nenhuma lista de serviços carregada neste navegador. <button type="button" id="bReimport">Importar lista</button>`;
+  $("#bReimport").onclick=()=>{ $("#picker").classList.add("hidden"); $("#importer").classList.remove("hidden"); $("#importTxt").focus(); };
+}
+function renderServs(){
+  const L=S.servs||[], box=$("#servList");
+  if(!L.length){ box.innerHTML=""; return; }
+  box.innerHTML=`<div class="srv-head"><span class="h-nm">Serviço</span><span>Preço</span><span class="h-com">Comissão</span><span class="h-q">Qtd.</span><span></span></div>`+
+   L.map((x,i)=>`<div class="srv-row" data-i="${i}">
+     <div class="nm">${x.manual?`<div class="inp"><input data-f="n" value="${esc(x.n)}" placeholder="Nome do serviço" aria-label="Nome do serviço"></div>`:esc(x.n)}</div>
+     <div class="inp"><span>R$</span><input data-f="p" inputmode="decimal" value="${esc(x.p)}" aria-label="Preço"></div>
+     <div class="inp c-com"><input data-f="c" inputmode="decimal" value="${esc(x.c)}" aria-label="Comissão"><span>%</span></div>
+     <div class="inp c-q"><input data-f="q" inputmode="numeric" value="${esc(x.q)}" aria-label="Quantidade"></div>
+     <button type="button" class="rm" aria-label="Remover serviço">×</button></div>`).join("");
+  box.querySelectorAll(".srv-row").forEach(r=>{
+    const i=+r.dataset.i;
+    r.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{ S.servs[i][inp.dataset.f]=inp.value; render(); }));
+    r.querySelector(".rm").onclick=()=>{ S.servs.splice(i,1); renderServs(); render(); };
+  });
+}
+function servTotals(m){
+  const L=S.servs||[];
+  $("#servTotal").innerHTML = L.length ? `<span>Total avulso</span><span class="num">${brl(m.av,2)}</span>` : "";
+}
+function renderPick(){
+  const q=norm($("#pickQ").value.trim()), list=$("#pickList");
+  const hits=BASE.filter(x=>!q || q.split(/\s+/).every(w=>norm(x.n).includes(w))).slice(0,200);
+  list.innerHTML = hits.length ? hits.map(x=>`<button type="button" role="option" data-n="${esc(x.n)}"><span>${esc(x.n)}</span><span>${brl(x.p,2)}</span></button>`).join("") : `<div class="pick-empty">Nenhum serviço encontrado.</div>`;
+  list.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    const x=BASE.find(y=>y.n===b.dataset.n); if(!x) return;
+    S.servs=[...(S.servs||[]), {n:x.n,p:String(x.p).replace(".",","),c:String(x.c).replace(".",","),q:"1"}];
+    $("#picker").classList.add("hidden"); $("#pickQ").value="";
+    renderServs(); render();
+  });
+}
+$("#bAddServ").onclick=()=>{
+  if(!BASE.length){ $("#importer").classList.remove("hidden"); $("#importTxt").focus(); return; }
+  const pk=$("#picker"); pk.classList.toggle("hidden");
+  if(!pk.classList.contains("hidden")){ renderPick(); $("#pickQ").focus(); }
+};
+$("#pickQ").addEventListener("input",renderPick);
+$("#bManual").onclick=()=>{ S.servs=[...(S.servs||[]),{n:"",p:"",c:S.comissao||"0",q:"1",manual:true}]; renderServs(); render(); const ins=$("#servList").querySelectorAll('input[data-f="n"]'); if(ins.length) ins[ins.length-1].focus(); };
+$("#bImportOk").onclick=()=>{
+  const list=parseBase($("#importTxt").value);
+  if(!list.length){ toast("Não encontrei serviços nesse texto"); return; }
+  BASE=list; try{ localStorage.setItem(BASE_KEY, JSON.stringify(list)); }catch(e){}
+  $("#importTxt").value=""; $("#importer").classList.add("hidden"); baseInfo();
+  toast(`${list.length} serviços carregados`);
+  $("#picker").classList.remove("hidden"); renderPick(); $("#pickQ").focus();
+};
+$("#bImportCancel").onclick=()=>{ $("#importTxt").value=""; $("#importer").classList.add("hidden"); };
+
 // ---------- estado, formulário, salvar e link ----------
 function fillForm(){
   document.querySelectorAll("[data-k]").forEach(el=>{ el.value = S[el.dataset.k] ?? ""; });
   syncParte();
+  renderServs();
   document.querySelectorAll("[data-seg]").forEach(seg=>{
     seg.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed", String(S[seg.dataset.seg]===b.dataset.v)));
   });
@@ -646,7 +797,7 @@ $("#bNew").onclick=()=>{ S={...DEFAULTS}; $("#saved").value=""; fillForm(); rend
 (function init(){
   const h=location.hash.slice(1);
   if(h){ const st=decodeState(h); if(st) S={...DEFAULTS,...st}; }
-  refreshSaved(); fillForm(); render();
+  refreshSaved(); baseInfo(); fillForm(); render();
 })();
 </script>
 </body>
