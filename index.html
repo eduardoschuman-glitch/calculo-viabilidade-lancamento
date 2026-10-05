@@ -297,14 +297,14 @@ tr.sel td{font-weight:600}
           <button type="button" class="btn" id="bManual">+ Serviço fora da lista</button>
         </div>
         <div class="picker hidden" id="picker">
-          <div class="inp"><input id="pickQ" type="search" placeholder="Buscar serviço (ex.: botox, nefertite)" aria-label="Buscar serviço"></div>
+          <div class="inp"><input id="pickQ" type="search" placeholder="Buscar serviço pelo nome" aria-label="Buscar serviço"></div>
           <div class="pick-list" id="pickList" role="listbox" aria-label="Serviços"></div>
         </div>
         <p class="base-info" id="baseInfo"></p>
         <div class="importer hidden" id="importer">
           <label for="importTxt"><b>Cole aqui a lista de serviços do sistema</b></label>
           <small>Uma linha por serviço, com nome, preço e comissão (do jeito que sai do CRM). A lista fica salva só neste navegador.</small>
-          <textarea id="importTxt" rows="7" placeholder="Botox - Efeito Nefertite&#9;R$ 1,400.00&#9;70.00 %&#9;60 min"></textarea>
+          <textarea id="importTxt" rows="7" placeholder="Nome do serviço&#9;R$ 100.00&#9;50.00 %&#9;60 min"></textarea>
           <div class="srv-actions"><button type="button" class="btn primary" id="bImportOk">Carregar lista</button><button type="button" class="btn" id="bImportCancel">Cancelar</button></div>
         </div>
         <div class="fields" style="margin-top:16px">
