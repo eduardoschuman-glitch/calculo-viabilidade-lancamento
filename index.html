@@ -156,6 +156,8 @@ tr.sel td{font-weight:600}
 .cmp td:first-child{white-space:normal}
 .cmp tr.tot td{font-weight:600}
 .cmp .pos{color:var(--good)} .cmp .neg{color:var(--bad)}
+.warn-txt{color:var(--bad)!important;font-weight:500}
+.warn-txt:empty{display:none}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
@@ -207,7 +209,7 @@ tr.sel td{font-weight:600}
             <small>Sessões, aplicações ou unidades do produto.</small></div>
           <div class="f"><label for="intervalo">Intervalo entre entregas</label>
             <div class="inp"><input id="intervalo" data-k="intervalo" inputmode="numeric"><span>meses</span></div>
-            <small>A primeira entrega acontece no mês 1.</small></div>
+            <small>A primeira entrega acontece no mês 1. Se a cliente escolhe quando usar, coloque o menor intervalo que a regra permite: é o pior cenário para o caixa. O lucro total não muda.</small><small class="warn-txt" id="hIntervalo"></small></div>
         </div>
       </section>
 
@@ -533,6 +535,10 @@ function render(){
     if (quit<0) notes.push(`Uma cliente que cancela logo depois da 1ª entrega, sem multa, deixa um prejuízo de <b>${brl(-quit)}</b>.`);
     if (m.multa>0) { const qm = sum(client({...m,k:1},m.p,true).net); notes.push(`Com a multa de ${pct(m.multa)}, essa mesma cliente deixa <b>${brl(qm)}</b>.`); }
   }
+  const lastDel = 1+(m.E-1)*m.I, maxI = m.E>1 ? Math.floor((m.M-1)/(m.E-1)) : null;
+  const foraPrazo = m.rec && m.E>1 && lastDel>m.M;
+  $("#hIntervalo").textContent = foraPrazo ? `Com ${m.I} meses de intervalo, a última entrega cai no mês ${lastDel}, depois da última mensalidade (mês ${m.M}). Para ${m.E} entregas dentro de ${m.M} meses, o intervalo máximo é ${maxI} ${maxI>1?"meses":"mês"}.` : "";
+  if (foraPrazo) notes.push(`Atenção: a última entrega cai no mês ${lastDel}, depois do fim das mensalidades. Ajuste o intervalo entre entregas (máximo ${maxI}).`);
   if (m.vagas>0 && R.n>m.vagas) notes.push(`Atenção: ${R.n} vendas passa do limite de ${m.vagas} vagas.`);
   if (!m.insEmp && m.ins>0 && m.E>0 && m.p>0) {
     const tot = m.rec ? m.p*m.M : m.p, prof = m.com*tot/m.E - m.ins;
@@ -669,6 +675,8 @@ function drawCompare(R){
       p:`A cliente economiza ${pct(desc)} (${brl(av.r-pk.r)}). Cada cliente que já compraria avulso e vai para o pacote faz a clínica perder ${brl(-diff)}. Para compensar, a cada 10 clientes que já comprariam avulso, o pacote precisa trazer pelo menos ${nNovas} ${nNovas>1?"clientes novas":"cliente nova"}.`};
   }
   const notes=[];
+  const comAv = av.r>0 ? av.com/av.r : 0;
+  if (Math.abs(comAv - m.com) > 0.05) notes.unshift(`<b>Atenção:</b> a comissão do pacote está em <b>${pct(m.com)}</b> (passo 04), mas nos serviços avulsos ela é de <b>${pct(comAv)}</b> em média. Se o profissional recebe a mesma porcentagem nos dois, a comparação está distorcida.`);
   notes.push(`Desconto que a cliente ganha no pacote: <b>${pct(desc)}</b> (${brl(av.r-pk.r)}).`);
   if(pk.l>0 && av.l>pk.l) notes.push(`O lançamento continua valendo mais do que não fazer nada enquanto até <b>${pct(pk.l/av.l)}</b> das compradoras forem clientes que já comprariam avulso.`);
   if(av.l<0) notes.push(`Atenção: até a venda avulsa dá prejuízo com esses custos. Confira o custo de produção e quem paga o insumo.`);
