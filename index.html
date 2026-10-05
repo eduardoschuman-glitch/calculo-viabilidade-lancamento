@@ -158,6 +158,10 @@ tr.sel td{font-weight:600}
 .cmp .pos{color:var(--good)} .cmp .neg{color:var(--bad)}
 .warn-txt{color:var(--bad)!important;font-weight:500}
 .warn-txt:empty{display:none}
+.calc-box{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.calc-box .k{font-size:12.5px;color:var(--ink-3)}
+.calc-box .v{font:600 21px Inter,sans-serif;margin-top:2px}
+.calc-box .s{font-size:13px;color:var(--ink-2);margin-top:2px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
@@ -217,9 +221,25 @@ tr.sel td{font-weight:600}
         <h2><span class="step">03</span>Custo de cada entrega</h2>
         <p class="lead">Quanto custa produzir ou aplicar uma vez.</p>
         <div class="fields">
-          <div class="f"><label for="insumo">Custo de produção (insumo principal)</label>
+          <div class="f full"><label>Como informar o custo do produto</label>
+            <div class="seg" data-seg="custoModo"><button type="button" data-v="fixo">Valor por entrega</button><button type="button" data-v="frasco">Calcular pelo frasco</button></div>
+            <small>Use "Calcular pelo frasco" quando o produto vem num frasco ou embalagem que rende várias aplicações.</small></div>
+          <div class="f cm-fixo"><label for="insumo">Custo de produção (insumo principal)</label>
             <div class="inp"><span>R$</span><input id="insumo" data-k="insumo" inputmode="decimal"></div>
             <small>Ex.: a toxina usada numa sessão, o produto, a matéria-prima.</small></div>
+          <div class="f cm-frasco"><label for="frascoPreco">Preço do frasco</label>
+            <div class="inp"><span>R$</span><input id="frascoPreco" data-k="frascoPreco" inputmode="decimal"></div>
+            <small>Quanto a empresa paga por um frasco ou embalagem.</small></div>
+          <div class="f cm-frasco"><label for="frascoUn">Unidades no frasco</label>
+            <div class="inp"><input id="frascoUn" data-k="frascoUn" inputmode="decimal"><span>unidades</span></div>
+            <small>Ex.: 100U num frasco de toxina, 10 ml num frasco de 10 ml.</small></div>
+          <div class="f cm-frasco"><label for="unSessao">Unidades por entrega</label>
+            <div class="inp"><input id="unSessao" data-k="unSessao" inputmode="decimal"><span>unidades</span></div>
+            <small>Quanto se usa numa aplicação. Ex.: 50U num terço superior.</small></div>
+          <div class="f cm-frasco"><label for="perda">Perda (sobra de frasco que vai fora)</label>
+            <div class="inp"><input id="perda" data-k="perda" inputmode="decimal"><span>%</span></div>
+            <small>Parte do frasco que vence aberta e é descartada. 0% se todo frasco é usado até o fim.</small></div>
+          <div class="f full cm-frasco"><div class="calc-box" id="custoCalc"></div></div>
           <div class="f"><label>Quem paga esse insumo</label>
             <div class="seg" data-seg="pagaInsumo"><button type="button" data-v="empresa">A empresa</button><button type="button" data-v="profissional">O profissional</button></div>
             <small>Se o profissional compra o insumo, ele sai da comissão dele e não entra no custo da empresa.</small></div>
@@ -368,7 +388,7 @@ const META = 0.20; // margem de referência para o veredito
 const DEFAULTS = {
   nome:"", modo:"unico", preco:"", meses:"12", vagas:"",
   entregas:"1", intervalo:"1",
-  insumo:"", pagaInsumo:"empresa", outros:"",
+  insumo:"", custoModo:"fixo", frascoPreco:"", frascoUn:"100", unSessao:"", perda:"0", pagaInsumo:"empresa", outros:"",
   comissao:"0", comissaoQuando:"entrega", taxa:"0", imposto:"0",
   cac:"0", anuncios:"0", materiais:"0", outrosLanc:"0", fixo:"0",
   cancel:"0", cancelMes:"3", multa:"0",
@@ -384,12 +404,19 @@ const numIn = v => { const s = String(v??"").trim(); if(!s) return 0; if (s.incl
 const brl = (v,d=0) => (v<0?"−":"") + "R$ " + Math.abs(v).toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d});
 const pct = v => isFinite(v) ? (v*100).toLocaleString("pt-BR",{maximumFractionDigits:1})+"%" : "–";
 
+// custo por entrega quando o produto vem em frasco: preço por unidade, corrigido pela sobra que vai fora
+function custoFrasco(s){
+  if (s.custoModo!=="frasco") return null;
+  const preco=numIn(s.frascoPreco), un=numIn(s.frascoUn), us=numIn(s.unSessao), perda=Math.min(95,Math.max(0,numIn(s.perda)))/100;
+  if (!(un>0)) return 0;
+  return preco/un*us/(1-perda);
+}
 function model(s){
   return {
     rec: s.modo==="recorrente",
     p: numIn(s.preco), M: Math.max(1,Math.round(numIn(s.meses))),
     E: Math.max(0,Math.round(numIn(s.entregas))), I: Math.max(1,Math.round(numIn(s.intervalo))),
-    ins: numIn(s.insumo), insEmp: s.pagaInsumo!=="profissional", out: numIn(s.outros),
+    ins: custoFrasco(s) ?? numIn(s.insumo), insEmp: s.pagaInsumo!=="profissional", out: numIn(s.outros),
     com: numIn(s.comissao)/100, comEnt: s.comissaoQuando!=="recebimento",
     fee: numIn(s.taxa)/100, tax: numIn(s.imposto)/100,
     cac: numIn(s.cac), inv: numIn(s.anuncios)+numIn(s.materiais)+numIn(s.outrosLanc), fixo: numIn(s.fixo),
@@ -491,6 +518,17 @@ function render(){
   const R = compute(S, S.vendas);
   const m = R.m;
   // campos que dependem do modo
+  const fr = S.custoModo==="frasco";
+  document.querySelectorAll(".cm-fixo").forEach(el=>el.classList.toggle("hidden", fr));
+  document.querySelectorAll(".cm-frasco").forEach(el=>el.classList.toggle("hidden", !fr));
+  if (fr) {
+    const preco=numIn(S.frascoPreco), un=numIn(S.frascoUn), us=numIn(S.unSessao), perda=Math.min(95,Math.max(0,numIn(S.perda)))/100;
+    const pu = un>0 ? preco/un : 0, puReal = pu/(1-perda);
+    let h = `<div class="k">Custo do produto por entrega</div><div class="v num">${brl(m.ins,2)}</div>`;
+    if (pu>0) h += `<div class="s">${brl(pu,2)} por unidade` + (perda>0 ? `, ou ${brl(puReal,2)} contando a perda. Sem perda, a entrega custaria ${brl(pu*us,2)}.` : `.`) + (us>0 && un>0 ? ` Um frasco rende ${(un*(1-perda)/us).toLocaleString("pt-BR",{maximumFractionDigits:1})} entregas.` : ``) + `</div>`;
+    else h += `<div class="s">Preencha o preço e as unidades do frasco.</div>`;
+    $("#custoCalc").innerHTML = h;
+  }
   document.querySelectorAll(".rec").forEach(el=>el.classList.toggle("hidden", !m.rec));
   $("#lPreco").textContent = m.rec ? "Valor da mensalidade" : "Preço final";
   $("#hPreco").textContent = m.rec ? "O que a cliente paga por mês." : "O valor que a cliente paga.";
