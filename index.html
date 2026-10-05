@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Viabilidade de Lançamento</title>
+<meta name="description" content="Calculadora para saber se o lançamento de um produto ou serviço fecha a conta, qual a margem de lucro e em quanto tempo ele se paga.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f4f0; --surface:#fcfcfb; --surface-2:#f0efec; --line:#e2dfd8;
+  --ink:#1d1c1a; --ink-2:#55524c; --ink-3:#8a867e;
+  --accent:#1d1c1a; --accent-ink:#fcfcfb;
+  --pos:#2a78d6; --neg:#e34948;
+  --good:#0f7a3a; --good-bg:#e6f3ea; --warn:#8a5a00; --warn-bg:#fbf0d9; --bad:#a32222; --bad-bg:#fbe6e4;
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121211; --surface:#1a1a19; --surface-2:#242422; --line:#33332f;
+    --ink:#f1efea; --ink-2:#bdb9b0; --ink-3:#8b877f;
+    --accent:#f1efea; --accent-ink:#1a1a19;
+    --pos:#3987e5; --neg:#e66767;
+    --good:#6fd08f; --good-bg:#16291d; --warn:#f2c46b; --warn-bg:#2d2414; --bad:#f08a86; --bad-bg:#321b1a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121211; --surface:#1a1a19; --surface-2:#242422; --line:#33332f;
+  --ink:#f1efea; --ink-2:#bdb9b0; --ink-3:#8b877f;
+  --accent:#f1efea; --accent-ink:#1a1a19;
+  --pos:#3987e5; --neg:#e66767;
+  --good:#6fd08f; --good-bg:#16291d; --warn:#f2c46b; --warn-bg:#2d2414; --bad:#f08a86; --bad-bg:#321b1a;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,sans-serif}
+h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:600;margin:0;letter-spacing:-.01em}
+.num{font-variant-numeric:tabular-nums}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 16px 64px}
+header.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:24px}
+header.top h1{font-size:clamp(26px,4vw,36px)}
+header.top p{margin:6px 0 0;color:var(--ink-2);max-width:560px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,input,button{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 12px;cursor:pointer}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+select.btn{padding-right:28px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:24px;align-items:start}
+@media (max-width:960px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+.card + .card{margin-top:16px}
+.card h2{font-size:19px;display:flex;gap:10px;align-items:baseline}
+.card h2 .step{font:600 12px Inter,sans-serif;color:var(--ink-3);letter-spacing:.06em}
+.card > p.lead{margin:4px 0 14px;color:var(--ink-2);font-size:14px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+@media (max-width:520px){.fields{grid-template-columns:minmax(0,1fr)}}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.f.full{grid-column:1/-1}
+.f label{font-weight:500;font-size:14px}
+.f small{color:var(--ink-3);font-size:12.5px;line-height:1.4}
+.inp{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--surface);overflow:hidden}
+.inp:focus-within{border-color:var(--ink-2);box-shadow:0 0 0 3px color-mix(in srgb,var(--ink) 10%,transparent)}
+.inp span{padding:0 10px;color:var(--ink-3);font-size:14px;white-space:nowrap}
+.inp input{border:0;outline:0;background:transparent;padding:9px 10px;width:100%;min-width:0}
+.inp span + input{padding-left:0}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px;background:var(--surface-2)}
+.seg button{flex:1;border:0;background:transparent;border-radius:7px;padding:7px 8px;cursor:pointer;font-size:14px;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08);font-weight:500}
+.hidden{display:none!important}
+
+aside.res{position:sticky;top:16px}
+@media (max-width:960px){aside.res{position:static}}
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;cursor:pointer;font-weight:500}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chips .inp{width:150px}
+.verdict{border-radius:var(--radius);padding:18px 20px;margin-top:16px;border:1px solid transparent}
+.verdict .tag{font:600 12px Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase}
+.verdict h3{font-size:24px;margin:4px 0 6px}
+.verdict p{margin:0;color:var(--ink-2)}
+.verdict.good{background:var(--good-bg);border-color:color-mix(in srgb,var(--good) 30%,transparent)}
+.verdict.good .tag{color:var(--good)}
+.verdict.warn{background:var(--warn-bg);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.verdict.warn .tag{color:var(--warn)}
+.verdict.bad{background:var(--bad-bg);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.verdict.bad .tag{color:var(--bad)}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.kpi .k{font-size:12.5px;color:var(--ink-3)}
+.kpi .v{font:600 21px Inter,sans-serif;margin-top:2px;overflow-wrap:anywhere}
+.kpi .s{font-size:12.5px;color:var(--ink-2)}
+.v.neg{color:var(--bad)}
+.notes{margin:12px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.notes li{font-size:14px;color:var(--ink-2);padding-left:18px;position:relative}
+.notes li::before{content:"";position:absolute;left:4px;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--ink-3)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:right;padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:500;color:var(--ink-3);font-size:12.5px}
+tr.sel td{font-weight:600}
+.tbl{overflow-x:auto}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.dot.good{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+.chart{position:relative;margin-top:8px}
+.chart svg{display:block;width:100%;height:auto}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--surface);font-size:12.5px;padding:6px 9px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-110%);opacity:0;transition:opacity .1s}
+.legend{display:flex;gap:16px;font-size:12.5px;color:var(--ink-2);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.bar-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.bar-row:last-child{border-bottom:0}
+.bar-row .track{height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+.bar-row .track b{display:block;height:100%;background:var(--ink-3);border-radius:4px}
+.bar-row .track b.profit{background:var(--pos)}
+.bar-row .track b.loss{background:var(--neg)}
+.foot{margin-top:28px;color:var(--ink-3);font-size:13px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Viabilidade de Lançamento</h1>
+      <p>Preencha a oferta, os custos e os riscos. No fim você vê se a conta fecha, a margem de lucro e em quanto tempo o lançamento se paga.</p>
+    </div>
+    <div class="toolbar">
+      <select id="saved" class="btn" aria-label="Simulações salvas"><option value="">Simulações salvas</option></select>
+      <button class="btn" id="bSave" type="button">Salvar</button>
+      <button class="btn" id="bLink" type="button">Copiar link</button>
+      <button class="btn" id="bNew" type="button">Nova simulação</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <form id="f" autocomplete="off" onsubmit="return false">
+      <section class="card">
+        <h2><span class="step">01</span>A oferta</h2>
+        <p class="lead">O que você vai vender e como a cliente paga.</p>
+        <div class="fields">
+          <div class="f full"><label for="nome">Nome do produto ou serviço</label>
+            <div class="inp"><input id="nome" data-k="nome" type="text" placeholder="Ex.: Clube do Botox"></div></div>
+          <div class="f full"><label>Forma de cobrança</label>
+            <div class="seg" data-seg="modo"><button type="button" data-v="unico">Pagamento único</button><button type="button" data-v="recorrente">Mensalidade (assinatura)</button></div>
+            <small>Parcelado no cartão com antecipação conta como pagamento único (use a taxa do parcelamento no passo 04).</small></div>
+          <div class="f"><label for="preco" id="lPreco">Preço final</label>
+            <div class="inp"><span>R$</span><input id="preco" data-k="preco" inputmode="decimal"></div>
+            <small id="hPreco">O valor que a cliente paga.</small></div>
+          <div class="f rec"><label for="meses">Número de mensalidades</label>
+            <div class="inp"><input id="meses" data-k="meses" inputmode="numeric"><span>meses</span></div>
+            <small id="hTotal"></small></div>
+          <div class="f"><label for="vagas">Vagas disponíveis</label>
+            <div class="inp"><input id="vagas" data-k="vagas" inputmode="numeric" placeholder="sem limite"></div>
+            <small>Limite de vendas do lançamento. Deixe vazio se não houver.</small></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="step">02</span>A entrega</h2>
+        <p class="lead">Quantas vezes o serviço é entregue para cada cliente e quando.</p>
+        <div class="fields">
+          <div class="f"><label for="entregas">Entregas por cliente</label>
+            <div class="inp"><input id="entregas" data-k="entregas" inputmode="numeric"><span>vezes</span></div>
+            <small>Sessões, aplicações ou unidades do produto.</small></div>
+          <div class="f"><label for="intervalo">Intervalo entre entregas</label>
+            <div class="inp"><input id="intervalo" data-k="intervalo" inputmode="numeric"><span>meses</span></div>
+            <small>A primeira entrega acontece no mês 1.</small></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="step">03</span>Custo de cada entrega</h2>
+        <p class="lead">Quanto custa produzir ou aplicar uma vez.</p>
+        <div class="fields">
+          <div class="f"><label for="insumo">Custo de produção (insumo principal)</label>
+            <div class="inp"><span>R$</span><input id="insumo" data-k="insumo" inputmode="decimal"></div>
+            <small>Ex.: a toxina usada numa sessão, o produto, a matéria-prima.</small></div>
+          <div class="f"><label>Quem paga esse insumo</label>
+            <div class="seg" data-seg="pagaInsumo"><button type="button" data-v="empresa">A empresa</button><button type="button" data-v="profissional">O profissional</button></div>
+            <small>Se o profissional compra o insumo, ele sai da comissão dele e não entra no custo da empresa.</small></div>
+          <div class="f"><label for="outros">Outros custos por entrega</label>
+            <div class="inp"><span>R$</span><input id="outros" data-k="outros" inputmode="decimal"></div>
+            <small>Descartáveis, embalagem, frete. Pagos pela empresa.</small></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="step">04</span>Repasses, taxas e impostos</h2>
+        <p class="lead">O que sai de cada real recebido antes de virar lucro.</p>
+        <div class="fields">
+          <div class="f"><label for="parteEmp">Fica com a empresa</label>
+            <div class="inp"><input id="parteEmp" inputmode="decimal"><span>%</span></div>
+            <small>Parte de cada venda que fica com a clínica ou empresa.</small></div>
+          <div class="f"><label for="comissao">Vai para o profissional (comissão)</label>
+            <div class="inp"><input id="comissao" data-k="comissao" inputmode="decimal"><span>%</span></div>
+            <small>Parte que vai para quem executa. Os dois campos somam 100%.</small></div>
+          <div class="f"><label>Quando a comissão é paga</label>
+            <div class="seg" data-seg="comissaoQuando"><button type="button" data-v="entrega">Na entrega</button><button type="button" data-v="recebimento">A cada pagamento</button></div>
+            <small>Na entrega: paga o valor da sessão no dia. A cada pagamento: paga o percentual de cada parcela que entra.</small></div>
+          <div class="f"><label for="taxa">Taxa da maquininha ou plataforma</label>
+            <div class="inp"><input id="taxa" data-k="taxa" inputmode="decimal"><span>%</span></div>
+            <small>Sobre cada pagamento recebido. Pix costuma ser 0%.</small></div>
+          <div class="f"><label for="imposto">Imposto sobre a venda</label>
+            <div class="inp"><input id="imposto" data-k="imposto" inputmode="decimal"><span>%</span></div>
+            <small>Alíquota do Simples ou do regime da empresa. Confirme com o contador.</small></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="step">05</span>Custos do lançamento</h2>
+        <p class="lead">O que você gasta para lançar, venda pouco ou muito.</p>
+        <div class="fields">
+          <div class="f"><label for="cac">Custo por cliente conquistada</label>
+            <div class="inp"><span>R$</span><input id="cac" data-k="cac" inputmode="decimal"></div>
+            <small>Bônus de lançamento, brinde, anúncio dividido por venda.</small></div>
+          <div class="f"><label for="anuncios">Anúncios e divulgação</label>
+            <div class="inp"><span>R$</span><input id="anuncios" data-k="anuncios" inputmode="decimal"></div>
+            <small>Verba total do lançamento.</small></div>
+          <div class="f"><label for="materiais">Materiais e produção</label>
+            <div class="inp"><span>R$</span><input id="materiais" data-k="materiais" inputmode="decimal"></div>
+            <small>Design, PDF, videomaker, fotos, contrato com advogado.</small></div>
+          <div class="f"><label for="outrosLanc">Outros custos únicos</label>
+            <div class="inp"><span>R$</span><input id="outrosLanc" data-k="outrosLanc" inputmode="decimal"></div>
+            <small>Qualquer gasto que acontece uma vez só.</small></div>
+          <div class="f"><label for="fixo">Custo fixo mensal extra</label>
+            <div class="inp"><span>R$</span><input id="fixo" data-k="fixo" inputmode="decimal"></div>
+            <small>Só o que o lançamento cria: sistema, pessoa dedicada. Aluguel que já existe não entra.</small></div>
+        </div>
+      </section>
+
+      <section class="card rec">
+        <h2><span class="step">06</span>Risco de cancelamento</h2>
+        <p class="lead">Na assinatura, quem cancela cedo pode já ter recebido entregas que ainda não pagou.</p>
+        <div class="fields">
+          <div class="f"><label for="cancel">Clientes que cancelam</label>
+            <div class="inp"><input id="cancel" data-k="cancel" inputmode="decimal"><span>%</span></div>
+            <small>Estimativa de quantas desistem antes do fim.</small></div>
+          <div class="f"><label for="cancelMes">Cancelam depois do mês</label>
+            <div class="inp"><input id="cancelMes" data-k="cancelMes" inputmode="numeric"></div>
+            <small>Último mês que elas pagam.</small></div>
+          <div class="f"><label for="multa">Multa de cancelamento</label>
+            <div class="inp"><input id="multa" data-k="multa" inputmode="decimal"><span>%</span></div>
+            <small>Percentual das mensalidades que faltavam, cobrado de quem sai.</small></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="step">07</span>Comparação com a venda normal</h2>
+        <p class="lead">Opcional. Mostra se o lançamento rende mais do que vender do jeito de sempre.</p>
+        <div class="fields">
+          <div class="f"><label for="avulso">Preço da venda avulsa</label>
+            <div class="inp"><span>R$</span><input id="avulso" data-k="avulso" inputmode="decimal"></div>
+            <small>Preço normal de uma entrega fora do lançamento.</small></div>
+          <div class="f"><label for="canib">Compradoras que já comprariam avulso</label>
+            <div class="inp"><input id="canib" data-k="canib" inputmode="decimal"><span>%</span></div>
+            <small>Clientes que pagariam o preço cheio e migram para a oferta.</small></div>
+          <div class="f"><label for="freq">Compras avulsas no mesmo período</label>
+            <div class="inp"><input id="freq" data-k="freq" inputmode="decimal"><span>vezes</span></div>
+            <small>Quantas vezes essa cliente compraria avulso no tempo da oferta.</small></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="step">08</span>Sua meta</h2>
+        <div class="fields">
+          <div class="f"><label for="meta">Margem de lucro desejada</label>
+            <div class="inp"><input id="meta" data-k="meta" inputmode="decimal"><span>%</span></div>
+            <small>Abaixo disso a conta fecha, mas com margem apertada.</small></div>
+        </div>
+      </section>
+    </form>
+
+    <aside class="res" aria-live="polite">
+      <section class="card">
+        <h2>Quantas vendas?</h2>
+        <p class="lead" style="margin-bottom:10px">Clique para simular.</p>
+        <div class="chips" id="chips"></div>
+        <div id="verdict" class="verdict"></div>
+        <div class="kpis" id="kpis"></div>
+        <ul class="notes" id="notes"></ul>
+      </section>
+
+      <section class="card">
+        <h2>Caixa acumulado mês a mês</h2>
+        <p class="lead">Quanto dinheiro o lançamento já devolveu (ou ainda deve) em cada mês.</p>
+        <div class="chart" id="chart"><div class="tip" id="tip"></div></div>
+        <div class="legend"><span><i style="background:var(--pos)"></i>Positivo</span><span><i style="background:var(--neg)"></i>Negativo</span></div>
+      </section>
+
+      <section class="card">
+        <h2>Para onde vai o dinheiro</h2>
+        <p class="lead" id="breakLead"></p>
+        <div id="breakdown"></div>
+      </section>
+
+      <section class="card">
+        <h2>Cenários lado a lado</h2>
+        <div class="tbl"><table id="scen"></table></div>
+      </section>
+    </aside>
+  </div>
+
+  <p class="foot">Os valores ficam só no seu navegador. "Salvar" guarda a simulação neste aparelho; "Copiar link" gera um endereço que abre a mesma simulação em qualquer lugar.</p>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const DEFAULTS = {
+  nome:"", modo:"unico", preco:"", meses:"12", vagas:"",
+  entregas:"1", intervalo:"1",
+  insumo:"", pagaInsumo:"empresa", outros:"",
+  comissao:"0", comissaoQuando:"entrega", taxa:"0", imposto:"0",
+  cac:"0", anuncios:"0", materiais:"0", outrosLanc:"0", fixo:"0",
+  cancel:"0", cancelMes:"3", multa:"0",
+  avulso:"", canib:"0", freq:"1",
+  meta:"20", vendas:20, chipList:[10,20,30,40,50]
+};
+let S = {...DEFAULTS};
+
+const $ = s => document.querySelector(s);
+const num = v => { if (v===null||v===undefined) return 0; const n = parseFloat(String(v).replace(/\./g,"").replace(",", ".")); return isFinite(n)?n:0; };
+// aceita "1.400,50", "1400.5" e "1400"
+const numIn = v => { const s = String(v??"").trim(); if(!s) return 0; if (s.includes(",") || /^\d{1,3}(\.\d{3})+$/.test(s)) return num(s); const n = parseFloat(s); return isFinite(n)?n:0; };
+const brl = (v,d=0) => (v<0?"−":"") + "R$ " + Math.abs(v).toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct = v => isFinite(v) ? (v*100).toLocaleString("pt-BR",{maximumFractionDigits:1})+"%" : "–";
+
+function model(s){
+  return {
+    rec: s.modo==="recorrente",
+    p: numIn(s.preco), M: Math.max(1,Math.round(numIn(s.meses))),
+    E: Math.max(0,Math.round(numIn(s.entregas))), I: Math.max(1,Math.round(numIn(s.intervalo))),
+    ins: numIn(s.insumo), insEmp: s.pagaInsumo!=="profissional", out: numIn(s.outros),
+    com: numIn(s.comissao)/100, comEnt: s.comissaoQuando!=="recebimento",
+    fee: numIn(s.taxa)/100, tax: numIn(s.imposto)/100,
+    cac: numIn(s.cac), inv: numIn(s.anuncios)+numIn(s.materiais)+numIn(s.outrosLanc), fixo: numIn(s.fixo),
+    c: numIn(s.cancel)/100, k: Math.max(1,Math.round(numIn(s.cancelMes))), multa: numIn(s.multa)/100,
+    av: numIn(s.avulso), canib: numIn(s.canib)/100, freq: numIn(s.freq),
+    meta: numIn(s.meta)/100, vagas: numIn(s.vagas)
+  };
+}
+
+// fluxo de uma cliente, mês a mês (índice 1..H), para um preço p
+function client(m, p, churn){
+  const M = m.rec ? m.M : 1;
+  const dels = []; for(let i=0;i<m.E;i++) dels.push(1+i*m.I);
+  const H = Math.max(M, dels.length?dels[dels.length-1]:1);
+  const k = (churn && m.rec) ? Math.min(m.k, M) : Infinity;
+  const z = () => new Array(H+1).fill(0);
+  const r=z(), com=z(), ins=z(), out=z(), fee=z(), tax=z(), cac=z();
+  if (m.rec){ for(let t=1;t<=Math.min(M,k);t++) r[t]+=p; if (k<M) r[k]+=m.multa*p*(M-k); }
+  else r[1]+=p;
+  const total = m.rec ? p*M : p;
+  dels.filter(d=>d<=k).forEach(d=>{
+    if (m.comEnt && m.E>0) com[d]+=m.com*total/m.E;
+    if (m.insEmp) ins[d]+=m.ins;
+    out[d]+=m.out;
+  });
+  for(let t=1;t<=H;t++){ if(!m.comEnt) com[t]+=m.com*r[t]; fee[t]=m.fee*r[t]; tax[t]=m.tax*r[t]; }
+  cac[1]=m.cac;
+  const net = r.map((v,t)=>v-com[t]-ins[t]-out[t]-fee[t]-tax[t]-cac[t]);
+  return {H,r,com,ins,out,fee,tax,cac,net,delivered:dels.filter(d=>d<=k).length};
+}
+const sum = a => a.reduce((x,y)=>x+y,0);
+
+// uma cliente "média" (mistura de quem fica e quem cancela)
+function avgClient(m,p){
+  const a = client(m,p,false), b = client(m,p,true), c = m.rec?m.c:0;
+  const mix = key => a[key].map((v,i)=>(1-c)*v + c*b[key][i]);
+  const o = {H:a.H}; ["r","com","ins","out","fee","tax","cac","net"].forEach(key=>o[key]=mix(key));
+  o.deliveries = (1-c)*a.delivered + c*b.delivered; o.full = a; return o;
+}
+
+function compute(s, n){
+  const m = model(s);
+  const cl = avgClient(m, m.p);
+  const H = cl.H;
+  const flows = [-m.inv]; for(let t=1;t<=H;t++) flows.push(n*cl.net[t] - m.fixo);
+  const cum=[]; flows.reduce((acc,v,i)=>(cum[i]=acc+v),0);
+  const receita = n*sum(cl.r);
+  const parts = {
+    comissao:n*sum(cl.com), insumo:n*sum(cl.ins), outros:n*sum(cl.out), taxa:n*sum(cl.fee),
+    imposto:n*sum(cl.tax), aquisicao:n*sum(cl.cac), lancamento:m.inv, fixos:m.fixo*H
+  };
+  const lucro = sum(flows);
+  const fixedTotal = m.inv + m.fixo*H;
+  const perClient = sum(cl.net);
+  // payback: mês a partir do qual o caixa acumulado não volta a ficar negativo
+  let lastNeg=-1; cum.forEach((v,i)=>{ if(v< -0.005) lastNeg=i; });
+  const payback = cum[H] < -0.005 ? null : (lastNeg===-1 ? 0 : lastNeg+1);
+  const worst = Math.min(0, ...cum);
+  // linearidade no preço: lucro por cliente = a + b*p ; receita por cliente = rr*p
+  const L0 = sum(avgClient(m,0).net), L1 = sum(avgClient(m,1).net), rr = sum(avgClient(m,1).r);
+  const a=L0, b=L1-L0;
+  const pMin = b>0 ? Math.max(0,-a/b) : null;
+  const den = n*(b - m.meta*rr);
+  const pMeta = n>0 && den>0 ? Math.max(0,(fixedTotal - n*a)/den) : null;
+  const be = perClient>0 ? Math.ceil(fixedTotal/perClient - 1e-9) : null;
+  // venda avulsa
+  const lucroAv = m.av>0 ? m.av*(1-m.com-m.fee-m.tax) - (m.insEmp?m.ins:0) - m.out : null;
+  const perda = lucroAv!==null ? n*m.canib*m.freq*lucroAv : 0;
+  const incremental = lucro - perda;
+  const perDelivery = cl.full.delivered>0 ? sum(cl.full.net)/cl.full.delivered : null;
+  return {m,n,H,flows,cum,receita,parts,lucro,margem:receita>0?lucro/receita:NaN,
+    payback,worst,perClient,pMin,pMeta,be,lucroAv,perda,incremental,perDelivery,fixedTotal,
+    roi: fixedTotal>0 ? lucro/fixedTotal : null};
+}
+
+function verdictOf(R){
+  const m=R.m;
+  if (m.p<=0) return {cls:"warn",tag:"Faltam dados",h:"Preencha o preço",p:"Coloque o preço final no passo 01 para calcular."};
+  if (R.perClient<=0) return {cls:"bad",tag:"Não fecha",h:"Cada venda dá prejuízo",
+    p:`Cada cliente deixa ${brl(R.perClient)} de resultado. Vender mais só aumenta o prejuízo.`+(R.pMin!==null?` O preço mínimo para não perder dinheiro é ${precoTxt(m,R.pMin)}.`:"")};
+  if (R.lucro<0) return {cls:"bad",tag:"Não fecha",h:`Não fecha com ${R.n} vendas`,
+    p:`Os custos do lançamento não se pagam. São necessárias pelo menos ${R.be} vendas para empatar.`};
+  if (m.av>0 && m.canib>0 && R.incremental<0) return {cls:"warn",tag:"Fecha, mas cuidado",h:"Rende menos que a venda normal",
+    p:`O lançamento dá ${brl(R.lucro)} de lucro, mas as clientes que já comprariam avulso deixariam ${brl(R.perda)}. No saldo, a empresa ganha ${brl(R.incremental)} a menos.`};
+  if (R.margem < m.meta) return {cls:"warn",tag:"Fecha, mas apertado",h:`Margem de ${pct(R.margem)}`,
+    p:`Dá lucro, mas abaixo da meta de ${pct(m.meta)}.`+(R.pMeta!==null?` Para chegar na meta com ${R.n} vendas, o preço precisa ser ${precoTxt(m,R.pMeta)}.`:"")};
+  return {cls:"good",tag:"Vale a pena",h:"A conta fecha",
+    p:`Margem de ${pct(R.margem)}, acima da meta de ${pct(m.meta)}.`+(R.payback?` O lançamento se paga no mês ${R.payback}.`:"")};
+}
+const precoTxt = (m,p) => m.rec ? `${brl(p,2)} por mês` : brl(p,2);
+
+function render(){
+  const R = compute(S, S.vendas);
+  const m = R.m;
+  // campos que dependem do modo
+  document.querySelectorAll(".rec").forEach(el=>el.classList.toggle("hidden", !m.rec));
+  $("#lPreco").textContent = m.rec ? "Valor da mensalidade" : "Preço final";
+  $("#hPreco").textContent = m.rec ? "O que a cliente paga por mês." : "O valor que a cliente paga.";
+  $("#hTotal").textContent = m.rec && m.p>0 ? `Total por cliente: ${brl(m.p*m.M,2)}` + (m.E>0?` (${brl(m.p*m.M/m.E,2)} por entrega)`:"") : "";
+
+  // chips
+  const chips = $("#chips"); chips.innerHTML="";
+  S.chipList.forEach(v=>{
+    const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=v+" vendas";
+    b.setAttribute("aria-pressed", String(S.vendas===v)); b.onclick=()=>{S.vendas=v; $("#custom").value=""; render();};
+    chips.appendChild(b);
+  });
+  const ci = document.createElement("div"); ci.className="inp";
+  ci.innerHTML=`<input id="custom" inputmode="numeric" placeholder="Outro número" aria-label="Outro número de vendas" value="${S.chipList.includes(S.vendas)?"":S.vendas}">`;
+  chips.appendChild(ci);
+  ci.querySelector("input").addEventListener("change", e=>{ const v=Math.round(numIn(e.target.value)); if(v>0){S.vendas=v; render();} });
+
+  // veredito
+  const V = verdictOf(R);
+  const vd=$("#verdict"); vd.className="verdict "+V.cls;
+  vd.innerHTML=`<div class="tag">${V.tag}</div><h3>${V.h}</h3><p>${V.p}</p>`;
+
+  // KPIs
+  const pb = R.payback===null ? "Não se paga" : R.payback===0 ? "Desde o início" : `Mês ${R.payback}`;
+  const pbS = R.payback===null ? `no prazo de ${R.H} meses` : R.payback===0 ? "o caixa nunca fica negativo" : `caixa positivo a partir daí`;
+  const kp = [
+    ["Lucro do lançamento", brl(R.lucro), `com ${R.n} vendas`, R.lucro<0],
+    ["Margem de lucro", pct(R.margem), `sobre ${brl(R.receita)} de receita`, R.margem<0],
+    ["Se paga em", pb, pbS, R.payback===null],
+    ["Lucro por cliente", brl(R.perClient), m.E>0 && R.perDelivery!==null ? `${brl(R.perDelivery)} por entrega` : "", R.perClient<0],
+    ["Precisa ter em caixa", brl(-R.worst), "pior momento antes de voltar", false],
+    ["Ponto de equilíbrio", R.be===null ? "Nunca" : R.be<=1 ? "1ª venda" : `${R.be} vendas`, R.fixedTotal>0?`para cobrir ${brl(R.fixedTotal)} fixos`:"sem custos fixos", R.be===null],
+  ];
+  $("#kpis").innerHTML = kp.map(([k,v,s,neg])=>`<div class="kpi"><div class="k">${k}</div><div class="v num ${neg?"neg":""}">${v}</div><div class="s">${s}</div></div>`).join("");
+
+  // notas
+  const notes=[];
+  if (R.pMin!==null && m.p>0) notes.push(`Preço mínimo para não ter prejuízo por cliente: <b>${precoTxt(m,R.pMin)}</b>.`);
+  if (R.pMeta!==null && m.p>0) notes.push(`Preço para atingir ${pct(m.meta)} de margem com ${R.n} vendas: <b>${precoTxt(m,R.pMeta)}</b>.`);
+  if (R.lucroAv!==null && R.perDelivery!==null) notes.push(`Cada entrega no lançamento deixa <b>${brl(R.perDelivery)}</b>. A mesma entrega vendida avulsa deixa <b>${brl(R.lucroAv)}</b>.`);
+  if (m.av>0 && m.canib>0) notes.push(`Lucro que deixa de entrar com quem migraria da venda avulsa: <b>${brl(R.perda)}</b>. Lucro realmente novo: <b>${brl(R.incremental)}</b>.`);
+  if (m.rec && m.E>0 && m.p>0) {
+    const quit = sum(client({...m,k:1,multa:0},m.p,true).net);
+    if (quit<0) notes.push(`Uma cliente que cancela logo depois da 1ª entrega, sem multa, deixa um prejuízo de <b>${brl(-quit)}</b>.`);
+    if (m.multa>0) { const qm = sum(client({...m,k:1},m.p,true).net); notes.push(`Com a multa de ${pct(m.multa)}, essa mesma cliente deixa <b>${brl(qm)}</b>.`); }
+  }
+  if (m.vagas>0 && R.n>m.vagas) notes.push(`Atenção: ${R.n} vendas passa do limite de ${m.vagas} vagas.`);
+  if (!m.insEmp && m.ins>0 && m.E>0 && m.p>0) {
+    const tot = m.rec ? m.p*m.M : m.p, prof = m.com*tot/m.E - m.ins;
+    let t = `O insumo está como pago pelo profissional. Depois de pagar o insumo, sobram para ele <b>${brl(prof)}</b> por entrega`;
+    if (m.av>0) t += `, contra <b>${brl(m.com*m.av - m.ins)}</b> na venda avulsa`;
+    notes.push(t + `. Confirme se ele topa.`);
+  }
+  $("#notes").innerHTML = notes.map(t=>`<li>${t}</li>`).join("");
+
+  drawChart(R);
+  drawBreakdown(R);
+  drawScenarios();
+  try{ history.replaceState(null,"","#"+encodeState()); }catch(e){}
+}
+
+function drawChart(R){
+  const box=$("#chart"); box.querySelectorAll("svg").forEach(e=>e.remove());
+  const W=640, Hh=220, pl=58, pr=8, pt=12, pb=26;
+  const vals=R.cum, n=vals.length;
+  let max=Math.max(0,...vals), min=Math.min(0,...vals); if(max===min){max=1;}
+  const pad=(max-min)*0.08; max+=max>0?pad:0; min-=min<0?pad:0;
+  const y=v=>pt+(max-v)/(max-min)*(Hh-pt-pb);
+  const bw=(W-pl-pr)/n, gap=Math.min(6,bw*0.25);
+  const ticks=niceTicks(min,max,4);
+  let g=ticks.map(t=>`<line x1="${pl}" x2="${W-pr}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)" stroke-width="1"/><text x="${pl-8}" y="${y(t)+4}" text-anchor="end" font-size="11" fill="var(--ink-3)">${short(t)}</text>`).join("");
+  g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(0)}" y2="${y(0)}" stroke="var(--ink-3)" stroke-width="1"/>`;
+  const step=Math.ceil(n/12);
+  vals.forEach((v,i)=>{
+    const x=pl+i*bw+gap/2, w=Math.max(1,bw-gap), y0=y(0), y1=y(v), h=Math.abs(y1-y0), top=Math.min(y0,y1);
+    const col=v>=0?"var(--pos)":"var(--neg)", r=Math.min(4,w/2,h);
+    // cantos arredondados só na ponta do dado
+    const d = v>=0
+      ? `M${x},${y0}V${top+r}Q${x},${top} ${x+r},${top}H${x+w-r}Q${x+w},${top} ${x+w},${top+r}V${y0}Z`
+      : `M${x},${y0}V${top+h-r}Q${x},${top+h} ${x+r},${top+h}H${x+w-r}Q${x+w},${top+h} ${x+w},${top+h-r}V${y0}Z`;
+    g+=`<path d="${h<0.5?`M${x},${y0}h${w}`:d}" fill="${col}"/>`;
+    g+=`<rect x="${pl+i*bw}" y="${pt}" width="${bw}" height="${Hh-pt-pb}" fill="transparent" data-i="${i}" class="hit"/>`;
+    if(i%step===0) g+=`<text x="${x+w/2}" y="${Hh-8}" text-anchor="middle" font-size="11" fill="var(--ink-3)">${i===0?"Lanç.":i}</text>`;
+  });
+  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("viewBox",`0 0 ${W} ${Hh}`); svg.setAttribute("role","img");
+  svg.setAttribute("aria-label","Caixa acumulado do lançamento por mês");
+  svg.innerHTML=g; box.insertBefore(svg, box.firstChild);
+  const tip=$("#tip");
+  svg.querySelectorAll(".hit").forEach(el=>{
+    el.addEventListener("mouseenter",()=>{
+      const i=+el.dataset.i, rb=box.getBoundingClientRect(), r=el.getBoundingClientRect();
+      tip.innerHTML=`<b>${i===0?"Lançamento":"Mês "+i}</b><br>Acumulado: ${brl(vals[i])}<br>No mês: ${brl(R.flows[i])}`;
+      tip.style.left=(r.left-rb.left+r.width/2)+"px"; tip.style.top=(Math.min(y(vals[i]),y(0))/Hh*rb.height)+"px"; tip.style.opacity=1;
+    });
+    el.addEventListener("mouseleave",()=>tip.style.opacity=0);
+  });
+}
+function niceTicks(min,max,c){ const span=max-min, raw=span/c, mag=Math.pow(10,Math.floor(Math.log10(raw))); const st=[1,2,2.5,5,10].map(s=>s*mag).find(s=>span/s<=c)||raw; const out=[]; for(let v=Math.ceil(min/st)*st; v<=max+1e-9; v+=st) out.push(Math.round(v*100)/100); return out; }
+function short(v){ const a=Math.abs(v), s=v<0?"−":""; return a>=1e6? s+(a/1e6).toLocaleString("pt-BR",{maximumFractionDigits:1})+" mi" : a>=1e3? s+(a/1e3).toLocaleString("pt-BR",{maximumFractionDigits:1})+" mil" : s+Math.round(a); }
+
+function drawBreakdown(R){
+  const rows=[["Comissão do profissional",R.parts.comissao],["Custo de produção (insumo)",R.parts.insumo],["Outros custos por entrega",R.parts.outros],
+    ["Taxa de pagamento",R.parts.taxa],["Imposto",R.parts.imposto],["Aquisição de clientes",R.parts.aquisicao],["Custos do lançamento",R.parts.lancamento],["Custos fixos mensais",R.parts.fixos]].filter(r=>r[1]>0.004);
+  const base=Math.max(R.receita, 1);
+  $("#breakLead").textContent = `De ${brl(R.receita)} recebidos com ${R.n} vendas:`;
+  let h=rows.map(([k,v])=>`<div class="bar-row"><span>${k}</span><div class="track"><b style="width:${Math.min(100,v/base*100)}%"></b></div><span class="num">${brl(v)} <small style="color:var(--ink-3)">${pct(v/base)}</small></span></div>`).join("");
+  h+=`<div class="bar-row"><span><b>${R.lucro>=0?"Lucro":"Prejuízo"}</b></span><div class="track"><b class="${R.lucro>=0?"profit":"loss"}" style="width:${Math.min(100,Math.abs(R.lucro)/base*100)}%"></b></div><span class="num"><b>${brl(R.lucro)}</b> <small style="color:var(--ink-3)">${pct(R.margem)}</small></span></div>`;
+  $("#breakdown").innerHTML=h;
+}
+
+function drawScenarios(){
+  const list=[...new Set([...S.chipList, S.vendas])].sort((a,b)=>a-b);
+  let h=`<thead><tr><th>Vendas</th><th>Receita</th><th>Lucro</th><th>Margem</th><th>Se paga em</th></tr></thead><tbody>`;
+  list.forEach(n=>{
+    const R=compute(S,n), V=verdictOf(R);
+    h+=`<tr class="${n===S.vendas?"sel":""}"><td><span class="dot ${V.cls}"></span>${n}</td><td class="num">${brl(R.receita)}</td><td class="num">${brl(R.lucro)}</td><td class="num">${pct(R.margem)}</td><td>${R.payback===null?"Não se paga":R.payback===0?"Início":"Mês "+R.payback}</td></tr>`;
+  });
+  $("#scen").innerHTML=h+"</tbody>";
+}
+
+// ---------- estado, formulário, salvar e link ----------
+function fillForm(){
+  document.querySelectorAll("[data-k]").forEach(el=>{ el.value = S[el.dataset.k] ?? ""; });
+  syncParte();
+  document.querySelectorAll("[data-seg]").forEach(seg=>{
+    seg.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed", String(S[seg.dataset.seg]===b.dataset.v)));
+  });
+}
+const fmtPct = v => String(Math.round(v*100)/100).replace(".", ",");
+function syncParte(){ $("#parteEmp").value = String(S.comissao).trim()==="" ? "" : fmtPct(100-numIn(S.comissao)); }
+document.querySelectorAll("[data-k]").forEach(el=>el.addEventListener("input",()=>{ S[el.dataset.k]=el.value; if(el.id==="comissao") syncParte(); render(); }));
+$("#parteEmp").addEventListener("input",e=>{
+  const v=e.target.value.trim(); S.comissao = v==="" ? "" : fmtPct(Math.min(100,Math.max(0,100-numIn(v))));
+  $("#comissao").value=S.comissao; render();
+});
+document.querySelectorAll("[data-seg]").forEach(seg=>seg.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+  S[seg.dataset.seg]=b.dataset.v; fillForm(); render();
+})));
+
+function encodeState(){ return btoa(unescape(encodeURIComponent(JSON.stringify(S)))); }
+function decodeState(h){ try{ return JSON.parse(decodeURIComponent(escape(atob(h)))); }catch(e){ return null; } }
+const STORE="viabilidade-simulacoes";
+function loadSaved(){ try{ return JSON.parse(localStorage.getItem(STORE)||"{}"); }catch(e){ return {}; } }
+function refreshSaved(){
+  const sel=$("#saved"), all=loadSaved();
+  sel.innerHTML=`<option value="">Simulações salvas</option>`+Object.keys(all).sort().map(k=>`<option>${k.replace(/</g,"&lt;")}</option>`).join("");
+}
+function toast(t){ const el=$("#toast"); el.textContent=t; el.classList.add("on"); setTimeout(()=>el.classList.remove("on"),2200); }
+$("#bSave").onclick=()=>{
+  const name=(S.nome||"").trim() || prompt("Nome da simulação:");
+  if(!name) return;
+  const all=loadSaved(); all[name]={...S};
+  try{ localStorage.setItem(STORE, JSON.stringify(all)); refreshSaved(); $("#saved").value=name; toast("Simulação salva neste navegador"); }
+  catch(e){ toast("Não foi possível salvar aqui. Use Copiar link."); }
+};
+$("#saved").onchange=e=>{ const all=loadSaved(), v=all[e.target.value]; if(v){ S={...DEFAULTS,...v}; fillForm(); render(); } };
+$("#bLink").onclick=async()=>{
+  const url=location.href.split("#")[0]+"#"+encodeState();
+  try{ await navigator.clipboard.writeText(url); toast("Link copiado"); }catch(e){ prompt("Copie o link:", url); }
+};
+$("#bNew").onclick=()=>{ S={...DEFAULTS}; $("#saved").value=""; fillForm(); render(); };
+
+(function init(){
+  const h=location.hash.slice(1);
+  if(h){ const st=decodeState(h); if(st) S={...DEFAULTS,...st}; }
+  refreshSaved(); fillForm(); render();
+})();
+</script>
+</body>
+</html>
